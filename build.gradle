@@ -1,0 +1,67 @@
+plugins {
+    id 'groovy'
+    id 'com.devsoap.fn' version '0.1.6'
+}
+
+repositories {
+    mavenCentral()
+    maven { url 'https://dl.bintray.com/fnproject/fnproject' }
+}
+
+configurations {
+    localGroovyConf
+}
+
+dependencies {
+    localGroovyConf localGroovy()
+    compile 'org.codehaus.groovy:groovy-all:3.0.0-alpha-4'
+    compile "com.fnproject.fn:api:1.0.85"
+    compile 'com.clarifai.clarifai-api2:core:2.3.0'
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+}
+
+task copyLibs(type: Copy) {
+    from configurations.runtime
+    into 'build/libs'
+    from 'libs'
+    into 'build/libs'
+}
+
+task copyAssets(type: Copy) {
+    from 'resources'
+    into 'build'
+}
+
+task copyKeys(type: Copy) {
+    from '.oci'
+    into 'build/.oci'
+}
+
+fn {
+  functionClass = 'codes.recursive.imageanalysis.ImageAnalysis'
+  functionMethod = 'analyze'
+}
+
+fnDeploy {
+  registry "phx.ocir.io/toddrsharp/faas"
+  api "https://functions.us-phoenix-1.oraclecloud.com"
+}
+
+task deploy() {
+    doLast {
+        def cmd = "fn deploy --app barn-automation --working-dir /Users/trsharp/Projects/barn-automation/serverless/barn-automation-image-analysis-fn/build".execute()
+        def result = cmd.in.text
+        if( result ) {
+            def newVersion = result.find(/(?m)^Bumped to version (.*)/).replace("Bumped to version ", "")
+            def yaml = new File('resources/func.yaml')
+            def yamlText = yaml.text
+            yamlText = yamlText.replaceAll(/(?m)^version:.*/, "version: ${newVersion}")
+            yaml.write(yamlText)
+        }
+    }
+}
+
+deploy.dependsOn assemble
+assemble.dependsOn copyLibs
+assemble.dependsOn copyAssets
+assemble.dependsOn copyKeys

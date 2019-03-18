@@ -95,3 +95,4 @@ gradle-app.setting
 .oci
 .idea
 *.iml
+.DS_Store

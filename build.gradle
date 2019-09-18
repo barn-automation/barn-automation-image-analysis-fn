@@ -17,6 +17,7 @@ dependencies {
     compile 'org.codehaus.groovy:groovy-all:3.0.0-alpha-4'
     compile "com.fnproject.fn:api:1.0.85"
     compile 'com.clarifai.clarifai-api2:core:2.3.0'
+    compile 'io.cloudevents:cloudevents-api:0.2.1'
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 }
 

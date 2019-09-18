@@ -5,21 +5,28 @@ import clarifai2.dto.input.ClarifaiInput
 import clarifai2.dto.model.ConceptModel
 import clarifai2.dto.model.output.ClarifaiOutput
 import clarifai2.dto.prediction.Concept
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.fnproject.fn.api.OutputEvent
 import com.oracle.bmc.auth.ConfigFileAuthenticationDetailsProvider
 import com.oracle.bmc.ons.NotificationDataPlaneClient
 import com.oracle.bmc.ons.model.MessageDetails
 import com.oracle.bmc.ons.requests.PublishMessageRequest
 import groovy.json.JsonOutput
-import groovy.json.JsonSlurper
+import io.cloudevents.CloudEvent
 
 class ImageAnalysis {
 
-    def analyze(String event) {
-        println("Analyzing Image....")
-        def parsedEvent = new JsonSlurper().parseText(event)
-        def imageUrl = "https://objectstorage.us-phoenix-1.oraclecloud.com/n/${parsedEvent.data.namespace}/b/${parsedEvent.data.bucketName}/o/${parsedEvent.data.displayName}"
-
+    def analyze(CloudEvent event) {
+        ObjectMapper objectMapper = new ObjectMapper()
+        Map data = objectMapper.convertValue(event.getData().get(), Map.class)
+        Map additionalDetails = objectMapper.convertValue(data.get("additionalDetails"), Map.class)
+        String imageUrl = "https://objectstorage.us-phoenix-1.oraclecloud.com/n/" +
+                additionalDetails.get("namespace") +
+                "/b/" +
+                additionalDetails.get("bucketName") +
+                "/o/" +
+                data.get("resourceName")
+        println imageUrl
         def clarifaiClient = new ClarifaiBuilder(System.getenv().get("clarifaiKey")).buildSync()
         ConceptModel model = clarifaiClient.getDefaultModels().generalModel()
 
@@ -53,7 +60,7 @@ class ImageAnalysis {
         client.publishMessage( publishMessageRequest )
 
         println("Message published!")
-        return OutputEvent.fromBytes( JsonOutput.toJson([event: parsedEvent]).bytes, OutputEvent.Status.Success, 'application/json')
+        return OutputEvent.fromBytes( JsonOutput.toJson([event: event]).bytes, OutputEvent.Status.Success, 'application/json')
     }
 
 }

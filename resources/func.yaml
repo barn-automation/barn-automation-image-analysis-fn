@@ -1,9 +1,9 @@
 schema_version: 20180708
 name: barn-automation-image-analysis-fn
-version: 0.0.82
+version: 0.0.87
 runtime: docker
 format: http-stream
-idle_timeout: 1800
-memory: 256
+memory: 1024
 timeout: 120
+idle_timeout: 1800
 triggers:
